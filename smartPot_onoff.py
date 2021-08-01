@@ -36,6 +36,7 @@ lock=Lock() #멀티쓰레드 lock기능
 DHT11_sensor=True #센서상태가 정상인지 확인용
 Soil_sensor=True
 BH1750_sensor=True
+isFanWorking = False
 DHT11=Adafruit_DHT.DHT11
 
 #사용하는 핀 번호들(BCM)
@@ -251,7 +252,14 @@ def led_bar(mode): #LED 바 설정함수
         GPIO.output(RELAY,GPIO.LOW)
         print("led bar: OFF")
         
-    
+def Fan(): #환기팬 작동함수
+    if isFanWorking is False :
+        #작동
+        time.sleep(180) #3분 작동
+        #휴식
+        time.sleep(120)
+    else:
+        print("fan is busy, wait")
 def RGB_LED_light( soil, air, lighting): #RGBLED 함수
     while True:
         
@@ -368,6 +376,28 @@ def WaterPump (): #워터펌프 함수
     GPIO.output(WATER_PUMP,GPIO.LOW) #멈춤
     print("WaterPump: OFF")
 
+def Fan(): #환기팬 작동함수(과열방지?로 3분작동 2분휴식)
+    if isFanWorking is False :
+        #작동
+        print("MOTOR: A1&A2 ON")            
+        GPIO.output(MOTER_A1,GPIO.HIGH)
+        GPIO.output(MOTER_A2,GPIO.LOW)
+        
+        GPIO.output(MOTER_B1, GPIO.HIGH)
+        GPIO.output(MOTER_B2, GPIO.LOW)
+
+        time.sleep(180) #3분 작동
+        #휴식
+        GPIO.output(MOTER_A1,GPIO.LOW)
+        GPIO.output(MOTER_A2,GPIO.LOW)
+        
+        GPIO.output(MOTER_B1, GPIO.LOW)
+        GPIO.output(MOTER_B2, GPIO.LOW)
+        
+        time.sleep(120) #2분 휴식
+    else:
+        print("fan is busy, wait")
+
 #실질적인 동작부분 코드
 while True: #실행
     try:
@@ -443,24 +473,14 @@ while True: #실행
             if(DHT11_sensor==True): #센서가 정상일 경우
                     #출력값 차이로 팬 가동
                     print("MOTOR: A1&A2 ON")
-                    
-                    GPIO.output(MOTER_A1,GPIO.HIGH)
-                    GPIO.output(MOTER_A2,GPIO.LOW)
-                    
-                    GPIO.output(MOTER_B1, GPIO.HIGH)
-                    GPIO.output(MOTER_B2, GPIO.LOW)
+                    if isFanWorking is False:
+                        FanW=threading.Thread(target=Fan, args=())
+                        FanW.start()
+
         elif LCD_State[1]==0 and LCD_State[0]==0 and LCD_State[2]==0:
             #정상인 경우 조도값 출력
             lcd.print(" Lux:"+str(illumAvg))
             led_bar(0)#LED Bar On =>OFF
-            #출력값을 같게하여 팬 멈춤, 정상
-            print("MOTOR: A1&A2 OFF")
-                
-            GPIO.output(MOTER_A1,GPIO.LOW)
-            GPIO.output(MOTER_A2,GPIO.LOW)
-            GPIO.output(MOTER_B1, GPIO.LOW)
-            GPIO.output(MOTER_B2, GPIO.LOW)    
-                
             print("LCD: ALL OK")
             
             
@@ -480,32 +500,10 @@ while True: #실행
                 if(DHT11_sensor==True): #센서가 정상일 경우
                     #출력값 차이로 팬 가동
                     print("MOTOR: A1&A2 ON")
-                    
-                    GPIO.output(MOTER_A1,GPIO.HIGH)
-                    GPIO.output(MOTER_A2,GPIO.LOW)
-                    
-                    GPIO.output(MOTER_B1, GPIO.HIGH)
-                    GPIO.output(MOTER_B2, GPIO.LOW)
-                    
-                else: #센서가 비정상인 경우 중지
-                    print("tempS Err?")
-                    GPIO.output(MOTER_A1,GPIO.LOW)
-                    GPIO.output(MOTER_A2,GPIO.LOW)
-                    
-                    GPIO.output(MOTER_B1, GPIO.LOW)
-                    GPIO.output(MOTER_B2, GPIO.LOW)    
-                    
-
-            else:
-                #출력값을 같게하여 팬 멈춤, 정상
-                print("MOTOR: A1&A2 OFF")
-                
-                GPIO.output(MOTER_A1,GPIO.LOW)
-                GPIO.output(MOTER_A2,GPIO.LOW)
-                
-                GPIO.output(MOTER_B1, GPIO.LOW)
-                GPIO.output(MOTER_B2, GPIO.LOW)    
-                
+                    if isFanWorking is False:
+                        FanW=threading.Thread(target=Fan, args=())
+                        FanW.start()
+    
 
             if LCD_State[2]==1 :
                 lcd.print("Light ")
@@ -526,7 +524,7 @@ while True: #실행
         print("       State --> preState")
         for k in range(3): 
             preState[k]=State[k]
-        time.sleep(3) #한 사이클 후 잠시 휴식(?)
+        time.sleep(120) #한 사이클 후 잠시 휴식(?)
     except KeyboardInterrupt: #ctrl+C 누르면 긴급 종료
         print("KeyboardInterrupt")
         break
