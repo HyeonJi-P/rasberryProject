@@ -37,6 +37,7 @@ DHT11_sensor=False #센서상태가 정상인지 확인용
 Soil_sensor=True
 BH1750_sensor=True
 isFanWorking = False
+Rest = False #다음 사이클 까지의 휴식시간동안 3색 LED작동 시키기 위해(갱신타이밍과는 구분이 필요하므로)
 DHT11=Adafruit_DHT.DHT11
 
 #사용하는 핀 번호들(BCM)
@@ -264,7 +265,7 @@ def RGB_LED_light( soil, air, lighting): #RGBLED 함수
         GPIO.output(RGB_LED_G,GPIO.LOW) #불끄기
         GPIO.output(RGB_LED_B,GPIO.LOW)
         
-        if checkFlag==False: #모두 join될때 중지
+        if (checkFlag==False) and (Rest == False): #갱신 타이밍에서만 중지
             print("RGB function Break!")
             break
         else:
@@ -402,6 +403,7 @@ def Fan(): #환기팬 작동함수(과열방지?로 3분작동 2분휴식)
 #실질적인 동작부분 코드
 while True: #실행
     try:
+        Rest = False
         sensor_list=[] #두 센서를 넣을 리스트
         soil_ss=soil() #토양수분센서
         tempHum_ss=temp_hum() #온습도센서
@@ -534,6 +536,8 @@ while True: #실행
         print("       State --> preState")
         for k in range(3): 
             preState[k]=State[k]
+        Rest = True
+        RGBLED.start()
         time.sleep(120) #한 사이클 후 잠시 휴식(?)
     except KeyboardInterrupt: #ctrl+C 누르면 긴급 종료
         print("KeyboardInterrupt")
