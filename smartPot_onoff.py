@@ -23,6 +23,7 @@ illuminance=[0,0,0,0,0] #조도센서 리스트
 State=[0,0,0] #현재상태리스트 [토양수분,온습도,빛]
 preState=[0,0,0] #이전 사이클 상태리스트 [토양수분,온습도,빛]
 LCD_State=[0,0,0] #LCD출력에 사용할 리스트(현재 과거 둘다이상시 1로기록)
+
 #온도 평균계산용 
 tempAvg=0
 #습도 평균계산용
@@ -31,14 +32,15 @@ humAvg=0
 soilAvg=0
 #illuminance avg
 illumAvg=0
-checkFlag=False #RGB LED용 센서값 읽는중인지 상태정리중인지 확인하는 변수
-lock=Lock() #멀티쓰레드 lock기능
+
+DHT11=Adafruit_DHT.DHT11
 DHT11_sensor=False #센서상태가 정상인지 확인용
 Soil_sensor=True
 BH1750_sensor=True
+
+checkFlag=False #RGB LED용 센서값 읽는중인지 상태정리중인지 확인하는 변수
 isFanWorking = False
 Rest = False #다음 사이클 까지의 휴식시간동안 3색 LED작동 시키기 위해(갱신타이밍과는 구분이 필요하므로)
-DHT11=Adafruit_DHT.DHT11
 
 #사용하는 핀 번호들(BCM)
 
