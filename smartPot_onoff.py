@@ -33,7 +33,7 @@ soilAvg=0
 illumAvg=0
 checkFlag=False #RGB LED용 센서값 읽는중인지 상태정리중인지 확인하는 변수
 lock=Lock() #멀티쓰레드 lock기능
-DHT11_sensor=True #센서상태가 정상인지 확인용
+DHT11_sensor=False #센서상태가 정상인지 확인용
 Soil_sensor=True
 BH1750_sensor=True
 isFanWorking = False
@@ -122,7 +122,8 @@ class temp_hum(Thread): #온습도 클레스
                         tempAvg=tsum/5
                         humAvg=hsum/5
                         DHT11_sensor=True    #정상작동
-                
+            
+
         except :
             print("DHT11 sensor Error")
             DHT11_sensor=False #센서 에러
@@ -163,6 +164,8 @@ class soil(Thread): #토양수분 클레스
                         for j in range(5):
                             ssum+=soil_moist[j]
                         soilAvg=ssum/5
+                        if soilAvg == 0: #비정상작동시 전부 0으로 읽히기 때문?
+                            raise Exception
                         Soil_sensor=True #토양수분센서 작동 정상
                     time.sleep(1) #센서 주기    
         except:
@@ -209,7 +212,7 @@ class light(Thread):
                     
                 time.sleep(1) #센서 주기    
         except ValueError :
-            BH1750_sensor=False #토양수분센서 작동 비정상
+            BH1750_sensor=False #작동 비정상
             preState[0]=1 #빠르게 표시하기 위해 preState값 바꾸기
             s=smtplib.SMTP('smtp.gmail.com',587)
             s.starttls()
@@ -252,15 +255,9 @@ def led_bar(mode): #LED 바 설정함수
         GPIO.output(RELAY,GPIO.LOW)
         print("led bar: OFF")
         
-def Fan(): #환기팬 작동함수
-    if isFanWorking is False :
-        #작동
-        time.sleep(180) #3분 작동
-        #휴식
-        time.sleep(120)
-    else:
-        print("fan is busy, wait")
+
 def RGB_LED_light( soil, air, lighting): #RGBLED 함수
+    global LCD_State
     while True:
         
         GPIO.output(RGB_LED_R,GPIO.LOW) #초기화
@@ -377,8 +374,10 @@ def WaterPump (): #워터펌프 함수
     print("WaterPump: OFF")
 
 def Fan(): #환기팬 작동함수(과열방지?로 3분작동 2분휴식)
+    global isFanWorking
     if isFanWorking is False :
         #작동
+        isFanWorking = True
         print("MOTOR: A1&A2 ON")            
         GPIO.output(MOTER_A1,GPIO.HIGH)
         GPIO.output(MOTER_A2,GPIO.LOW)
@@ -395,8 +394,10 @@ def Fan(): #환기팬 작동함수(과열방지?로 3분작동 2분휴식)
         GPIO.output(MOTER_B2, GPIO.LOW)
         
         time.sleep(120) #2분 휴식
+        isFanWorking = False
     else:
         print("fan is busy, wait")
+
 
 #실질적인 동작부분 코드
 while True: #실행
@@ -423,29 +424,35 @@ while True: #실행
         
         prt() #터미널로 확인하기위한 함수(테스트용)
         
-        if (soilAvg<10.0) or Soil_sensor==False : #평균값과 기준값 비교, 센서이상여부
-            State[0]=1 # 이상있음
+        if Soil_sensor == True:
+            if (soilAvg<10.0) : #평균값과 기준값 비교, 센서이상여부
+                State[0]=1 # 이상있음
+            else:
+                State[0]=0 #이상없음
         else:
-            State[0]=0 #이상없음
-        
-        if DHT11_sensor==False: #센서이상
-            State[1]=1    
-        elif (tempAvg<30.0) and (humAvg<30.0) :
-            # 정상
-            State[1]=0
-        elif (humAvg>=60) or (tempAvg>=30) :
-            State[1]=1
+            #센서 이상일 때에는 무시
+            State[0]=0
 
-        if BH1750_sensor == False : #센서이상
-            State[2]=1 
-            
-        elif illumAvg < 500 :
-            # 어두움
-            State[2]=1
-        elif illumAvg >= 5000 :
-            #충분히 밝음
-            State[2]=1
+        if DHT11_sensor==True:  
+            if (tempAvg<30.0) and (humAvg<30.0) :
+                # 정상
+                State[1]=0
+            elif (humAvg>=60) or (tempAvg>=30) :
+                State[1]=1
+        else:
+            #센서 이상일 때에는 무시
+            State[1]=0
+
+        if BH1750_sensor == True :     
+            if illumAvg < 500 :
+                # 어두움
+                State[2]=1
+            elif illumAvg >= 5000 :
+                #충분히 밝음
+                State[2]=0
+                led_bar(0) #생장등 끄기 
         else :
+            #센서 이상 무시
             State[2]=0
    
         #state 리스트 정리
@@ -517,7 +524,10 @@ while True: #실행
             print("LCD: Err")
 
         lcd.setCursor(0,1) #아랫줄에 온도출력
-        lcd.print("T:"+str(tempAvg)+" H:"+str(humAvg))
+        if DHT11_sensor ==True:
+            lcd.print("T:"+str(tempAvg)+" H:"+str(humAvg))
+        else:
+            lcd.print("DHT11 ignored")
         
 #move
         #move 현재상태를 과거상태로 옮기고 다음 사이클 준비
