@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 def on_connect(client, userdata, flags, rc):
 	print("Connected with result code "+str(rc))
 	#client.subscribe("$SYS/#")
-	client.subscribe("nodemcu") #구독 "nodemcu"
+	client.subscribe("test/python") #구독 "test/python"
 
 #서버로부터 publish message를 받을 때 호출되는 콜백
 def on_message(client, userdata, msg):
