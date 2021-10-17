@@ -13,3 +13,6 @@ if have problem when pull
 git fetch --all
 git reset --hard origin/main
 git pull origin main
+
+mqtt설치
+ pip install paho-mqtt
