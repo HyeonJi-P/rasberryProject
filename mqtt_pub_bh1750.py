@@ -4,6 +4,7 @@ import time
 import RPi_I2C_driver
 import sys
 sys.path.insert(0, '/home/pi/.local/lib/python2.7/site-packages')
+sys.path.insert(0, '/home/pi/RPi_i2C_LCD_driver') #실행시 라이브러리를 못찾는 문제가 있어서 경로써주었음
 import paho.mqtt.client as mqtt
 import spidev
 
