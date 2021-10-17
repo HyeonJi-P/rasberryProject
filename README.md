@@ -17,4 +17,4 @@ git pull origin main
 mqtt설치
  pip install paho-mqtt
 
- mosquitto_pub -d -q 1 -h "localhost" -p "1883" -t "v1/devices/me/telemetry" -u "엑세스토큰값" -m {"temperature":25}
+ mosquitto_pub -d -q 1 -h "demo.thingsboard.io" -p "1883" -t "v1/devices/me/telemetry" -u "엑세스토큰값" -m {"temperature":25}
