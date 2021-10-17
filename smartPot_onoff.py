@@ -448,7 +448,7 @@ while True: #실행
             State[1]=0
 
         if BH1750_sensor == True :     
-            if illumAvg < 500 :
+            if illumAvg < 1000 :
                 # 어두움
                 State[2]=1
             elif illumAvg >= 5000 :
@@ -539,6 +539,7 @@ while True: #실행
         for k in range(3): 
             preState[k]=State[k]
         Rest = True
+        RGBLED=threading.Thread(target=RGB_LED_light, args=(LCD_State[0],LCD_State[1],LCD_State[2]))
         RGBLED.start()
         time.sleep(120) #한 사이클 후 잠시 휴식(?)
     except KeyboardInterrupt: #ctrl+C 누르면 긴급 종료
